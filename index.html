@@ -1,1 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Quiet Log — Tinnitus Tracker</title>
 
+<!-- Install-to-home-screen support -->
+<meta name="theme-color" content="#0f1b24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quiet Log">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="manifest" href="manifest.json">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1b24;
+    --surface: #16242f;
+    --surface-raised: #1c2e3a;
+    --aqua: #7fd4c9;
+    --aqua-dim: #4d8f86;
+    --violet: #b6a6e8;
+    --violet-dim: #7d70a8;
+    --rose: #e88fb0;
+    --rose-dim: #a1607a;
+    --amber: #e8935c;
+    --good: #7fcf8f;
+    --bad: #e8935c;
+    --text: #ededE6;
+    --text-muted: #8a9aa3;
+    --line: #24394750;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  header .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--aqua);
+    margin-bottom: 6px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 34px;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 19px;
+    margin: 0 0 4px;
+  }
+  .card .sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: 0 0 18px;
+  }
+
+  /* Waveform */
+  canvas#wave {
+    display: block;
+    width: 100%;
+    height: 110px;
+    border-radius: 10px;
+    background: radial-gradient(ellipse at center, #17262f 0%, #101c24 100%);
+    margin-bottom: 10px;
+  }
+  .wave-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 22px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .wave-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .chip { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* Frequency block */
+  .freq-block {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    background: var(--surface-raised);
+  }
+  .freq-name-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed var(--line);
+    color: var(--text);
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    padding: 2px 0 8px;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  .freq-name-input::placeholder { color: var(--text-muted); font-style: italic; }
+
+  /* Slider */
+  .field { margin-bottom: 22px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .field label .val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    color: var(--aqua);
+  }
+  .field .helper {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -6px 0 12px;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--aqua-dim), var(--amber));
+    outline: none;
+  }
+  input[type=range].violet-range {
+    background: linear-gradient(90deg, var(--violet-dim), var(--amber));
+  }
+  input[type=range].rose-range {
+    background: linear-gradient(90deg, var(--rose-dim), var(--amber));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--aqua);
+    cursor: pointer;
+    margin-top: -8px;
+  }
+  input[type=range].violet-range::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--violet); }
+  input[type=range].rose-range::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--rose); }
+  input[type=range]::-moz-range-thumb {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--aqua);
+    cursor: pointer;
+  }
+  input[type=range].violet-range::-moz-range-thumb { box-shadow: 0 0 0 1px var(--violet); }
+  input[type=range].rose-range::-moz-range-thumb { box-shadow: 0 0 0 1px var(--rose); }
+  .scale-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Segmented control */
+  .segmented {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .segmented button {
+    padding: 10px 4px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .segmented button.active {
+    background: var(--aqua);
+    border-color: var(--aqua);
+    color: #0f1b24;
+    font-weight: 700;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 60px;
+  }
+  textarea::placeholder { color: #5c6b73; }
+
+  .save-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 4px;
+    border-radius: 10px;
+    border: none;
+    background: var(--aqua);
+    color: #0f1b24;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.15s ease;
+  }
+  .save-btn:hover { background: #97ddd3; }
+  .save-btn:active { transform: scale(0.99); }
+  .save-btn.saved { background: #6fbf6f; }
+
+  /* Stats row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .stat .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    color: var(--aqua);
+    display: block;
+  }
+  .stat .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Trend badges */
+  .trend-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .trend-row:last-child { border-bottom: none; }
+  .trend-name {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+  }
+  .trend-avg {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .trend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+  .trend-badge.improving { background: rgba(127,207,143,0.15); color: var(--good); }
+  .trend-badge.worsening { background: rgba(232,147,92,0.15); color: var(--bad); }
+  .trend-badge.stable { background: rgba(138,154,163,0.15); color: var(--text-muted); }
+  .trend-badge.unknown { background: rgba(138,154,163,0.1); color: var(--text-muted); font-weight: 500; }
+
+  /* History chart */
+  canvas#history { width: 100%; height: 160px; display: block; }
+
+  /* Entry list */
+  .entries { display: flex; flex-direction: column; gap: 8px; }
+  .entry-row {
+    padding: 12px 14px;
+    background: var(--surface-raised);
+    border-radius: 10px;
+  }
+  .entry-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .entry-row .date {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+  .entry-row .prot-tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .entry-row .del {
+    background: none; border: none; color: #5c6b73;
+    cursor: pointer; font-size: 15px; padding: 2px 6px;
+  }
+  .entry-row .del:hover { color: var(--amber); }
+  .entry-freqs { display: flex; flex-direction: column; gap: 5px; }
+  .freq-line { display: flex; align-items: center; gap: 6px; }
+  .freq-line .bars { display: flex; gap: 3px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 24px 0;
+  }
+
+  footer {
+    text-align: center;
+    color: #4d5c64;
+    font-size: 11px;
+    margin-top: 24px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Private &amp; on this device</div>
+    <h1>Quiet Log</h1>
+    <p id="dateLine">Loading…</p>
+  </header>
+
+  <div class="card">
+    <h2>This morning</h2>
+    <p class="sub">Rate each tone as you hear it right now, and how well you shielded your ears yesterday.</p>
+
+    <canvas id="wave"></canvas>
+    <div class="wave-legend">
+      <span><span class="chip" style="background:var(--aqua)"></span><span id="legendFreq1">Frequency 1</span></span>
+      <span><span class="chip" style="background:var(--violet)"></span><span id="legendFreq2">Frequency 2</span></span>
+    </div>
+
+    <div class="freq-block">
+      <input type="text" class="freq-name-input" id="freq1Name" placeholder="e.g. High-pitched ring">
+      <div class="field">
+        <label>Loudness <span class="val" id="freq1Val">5</span></label>
+        <input type="range" id="freq1" min="0" max="10" step="1" value="5">
+        <div class="scale-labels"><span>Silent</span><span>Unbearable</span></div>
+      </div>
+    </div>
+
+    <div class="freq-block">
+      <input type="text" class="freq-name-input" id="freq2Name" placeholder="e.g. Low hum">
+      <div class="field">
+        <label>Loudness <span class="val" id="freq2Val">5</span></label>
+        <input type="range" id="freq2" class="violet-range" min="0" max="10" step="1" value="5">
+        <div class="scale-labels"><span>Silent</span><span>Unbearable</span></div>
+      </div>
+    </div>
+
+    <div class="freq-block">
+      <div class="field" style="margin-bottom:0">
+        <label>Sound sensitivity today <span class="val" id="sensitivityVal">5</span></label>
+        <p class="helper">Reaction to everyday sounds — loud speech, chopping veg, clattering dishes.</p>
+        <input type="range" id="sensitivity" class="rose-range" min="0" max="10" step="1" value="5">
+        <div class="scale-labels"><span>Comfortable</span><span>Overwhelming</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Ear protection yesterday</label>
+      <div class="segmented" id="protection">
+        <button data-v="0">None</button>
+        <button data-v="1">Some</button>
+        <button data-v="2">Mostly</button>
+        <button data-v="3" class="active">Always</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Notes <span class="val" style="font-size:11px;color:var(--text-muted)">optional</span></label>
+      <textarea id="notes" placeholder="Loud venue last night, poor sleep, stress…"></textarea>
+    </div>
+
+    <button class="save-btn" id="saveBtn">Save today's entry</button>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><span class="num" id="statStreak">–</span><span class="label">Day streak</span></div>
+    <div class="stat"><span class="num" id="statAvgProt">–</span><span class="label">Avg protection (7d)</span></div>
+    <div class="stat"><span class="num" id="statAvgSens">–</span><span class="label">Avg sensitivity (7d)</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Are they improving?</h2>
+    <p class="sub">This week's average compared to the week before.</p>
+    <div id="trendList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Trend</h2>
+    <p class="sub">Frequency 1 (aqua), Frequency 2 (violet), sound sensitivity (rose), and ear protection (amber) over your recent entries.</p>
+    <canvas id="history"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Entries</h2>
+    <p class="sub" id="entryCount">—</p>
+    <div class="entries" id="entryList"></div>
+  </div>
+
+  <footer>Stored locally on this device only.</footer>
+</div>
+
+<script>
+const PROT_LABELS = ['None', 'Some', 'Mostly', 'Always'];
+let entries = {}; // date -> {freq1, freq2, sensitivity, protection, notes, savedAt}
+let settings = { freq1Name: '', freq2Name: '' };
+let selectedProtection = 3;
+
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(key) {
+  const d = new Date(key + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// ---------- Storage (localStorage — persists on this device/browser only) ----------
+const STORAGE_KEY = 'tinnitus:entries';
+const SETTINGS_KEY = 'tinnitus:settings';
+
+async function loadEntries() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    entries = raw ? JSON.parse(raw) : {};
+    // migrate old single-loudness entries
+    Object.keys(entries).forEach(k => {
+      const e = entries[k];
+      if (e.loudness !== undefined && e.freq1 === undefined) {
+        e.freq1 = e.loudness;
+        e.freq2 = e.loudness;
+        delete e.loudness;
+      }
+    });
+  } catch (e) {
+    entries = {};
+  }
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    settings = raw ? JSON.parse(raw) : { freq1Name: '', freq2Name: '' };
+  } catch (e) {
+    settings = { freq1Name: '', freq2Name: '' };
+  }
+}
+async function persistEntries() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch (e) {
+    console.error('Storage error', e);
+    alert('Could not save — your browser storage may be full or private browsing may be blocking it.');
+  }
+}
+async function persistSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.error('Storage error', e);
+  }
+}
+
+function freqLabel(n) {
+  return settings['freq' + n + 'Name'] && settings['freq' + n + 'Name'].trim()
+    ? settings['freq' + n + 'Name'].trim()
+    : 'Frequency ' + n;
+}
+
+// ---------- Waveform visual ----------
+const waveCanvas = document.getElementById('wave');
+const waveCtx = waveCanvas.getContext('2d');
+let waveTime = 0;
+function resizeCanvas(c) {
+  const rect = c.getBoundingClientRect();
+  c.width = rect.width * devicePixelRatio;
+  c.height = rect.height * devicePixelRatio;
+}
+function drawWave() {
+  const w = waveCanvas.width, h = waveCanvas.height;
+  waveCtx.clearRect(0, 0, w, h);
+  const v1 = parseInt(document.getElementById('freq1').value, 10);
+  const v2 = parseInt(document.getElementById('freq2').value, 10);
+  waveTime += 0.045;
+
+  function layer(value, baseFreq, colorRGB, ampBoost) {
+    const amp = (h/2 - 12) * (value / 10) * ampBoost;
+    waveCtx.beginPath();
+    for (let x = 0; x <= w; x += 4) {
+      const y = h/2 + Math.sin(x * baseFreq + waveTime) * amp;
+      if (x === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
+    }
+    waveCtx.strokeStyle = colorRGB;
+    waveCtx.lineWidth = 2.5 * devicePixelRatio;
+    waveCtx.stroke();
+  }
+
+  // freq2 = lower pitch look (slower oscillation), freq1 = higher pitch look (faster)
+  layer(v2, 0.008, 'rgba(182,166,232,0.85)', 0.8);
+  layer(v1, 0.022, 'rgba(127,212,201,0.9)', 1);
+
+  if (v1 === 0 && v2 === 0) {
+    waveCtx.fillStyle = 'rgba(138,154,163,0.7)';
+    waveCtx.font = (12*devicePixelRatio) + 'px Inter, sans-serif';
+    waveCtx.textAlign = 'center';
+    waveCtx.fillText('silence', w/2, h/2 + 4*devicePixelRatio);
+  }
+
+  requestAnimationFrame(drawWave);
+}
+
+// ---------- History chart ----------
+function drawHistory() {
+  const c = document.getElementById('history');
+  resizeCanvas(c);
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const keys = Object.keys(entries).sort().slice(-30);
+  if (keys.length < 2) {
+    ctx.fillStyle = 'rgba(138,154,163,0.7)';
+    ctx.font = (13*devicePixelRatio) + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Log a few days to see your trend', w/2, h/2);
+    return;
+  }
+
+  const padX = 12 * devicePixelRatio, padY = 14 * devicePixelRatio;
+  const plotW = w - padX*2, plotH = h - padY*2;
+  const stepX = plotW / (keys.length - 1);
+
+  function plot(getVal, color, maxVal) {
+    ctx.beginPath();
+    let started = false;
+    keys.forEach((k, i) => {
+      const raw = getVal(entries[k]);
+      if (raw === undefined || raw === null) return;
+      const x = padX + i * stepX;
+      const y = padY + plotH - (raw / maxVal) * plotH;
+      if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5 * devicePixelRatio;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    keys.forEach((k, i) => {
+      const raw = getVal(entries[k]);
+      if (raw === undefined || raw === null) return;
+      const x = padX + i * stepX;
+      const y = padY + plotH - (raw / maxVal) * plotH;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.5*devicePixelRatio, 0, Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  }
+
+  plot(e => e.freq1, '#7fd4c9', 10);
+  plot(e => e.freq2, '#b6a6e8', 10);
+  plot(e => e.sensitivity, '#e88fb0', 10);
+  plot(e => e.protection, '#e8935c', 3);
+}
+
+// ---------- Stats & trends ----------
+function computeStats() {
+  const keys = Object.keys(entries).sort();
+  let streak = 0;
+  let cursor = new Date();
+  while (true) {
+    const k = cursor.getFullYear() + '-' + String(cursor.getMonth()+1).padStart(2,'0') + '-' + String(cursor.getDate()).padStart(2,'0');
+    if (entries[k]) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    } else break;
+  }
+  const last7 = keys.slice(-7).map(k => entries[k]);
+  const avgProt = last7.length ? (last7.reduce((s,e)=>s+e.protection,0)/last7.length).toFixed(1) : '–';
+  const sensVals = last7.map(e => e.sensitivity).filter(v => v !== undefined && v !== null);
+  const avgSens = sensVals.length ? (sensVals.reduce((a,b)=>a+b,0)/sensVals.length).toFixed(1) : '–';
+
+  document.getElementById('statStreak').textContent = streak;
+  document.getElementById('statAvgProt').textContent = avgProt;
+  document.getElementById('statAvgSens').textContent = avgSens;
+}
+
+function avgOf(list, field) {
+  const vals = list.map(e => e[field]).filter(v => v !== undefined && v !== null);
+  if (!vals.length) return null;
+  return vals.reduce((a,b) => a+b, 0) / vals.length;
+}
+
+function renderTrends() {
+  const keys = Object.keys(entries).sort();
+  const container = document.getElementById('trendList');
+  container.innerHTML = '';
+
+  function trendFor(field) {
+    if (keys.length < 4) return { status: 'unknown', recentAvg: null };
+    const half = Math.max(3, Math.floor(keys.length / 2));
+    const recentKeys = keys.slice(-Math.min(7, half));
+    const priorKeys = keys.slice(-Math.min(14, keys.length), -recentKeys.length);
+    const recentAvg = avgOf(recentKeys.map(k => entries[k]), field);
+    const priorAvg = avgOf(priorKeys.map(k => entries[k]), field);
+    if (recentAvg === null || priorAvg === null) return { status: 'unknown', recentAvg };
+    const diff = recentAvg - priorAvg;
+    let status = 'stable';
+    if (diff <= -0.5) status = 'improving';
+    else if (diff >= 0.5) status = 'worsening';
+    return { status, recentAvg, diff };
+  }
+
+  const icons = { improving: '↓ Improving', worsening: '↑ Worsening', stable: '→ Stable', unknown: 'Log a few more days' };
+
+  const rows = [
+    { key: 'freq1', name: freqLabel(1) },
+    { key: 'freq2', name: freqLabel(2) },
+    { key: 'sensitivity', name: 'Sound sensitivity' }
+  ];
+
+  rows.forEach(r => {
+    const t = trendFor(r.key);
+    const row = document.createElement('div');
+    row.className = 'trend-row';
+    row.innerHTML = `
+      <div>
+        <div class="trend-name">${r.name}</div>
+        <div class="trend-avg">${t.recentAvg !== null ? 'avg ' + t.recentAvg.toFixed(1) + '/10 recently' : 'not enough data yet'}</div>
+      </div>
+      <span class="trend-badge ${t.status}">${icons[t.status]}</span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ---------- Entry list ----------
+function renderEntryList() {
+  const list = document.getElementById('entryList');
+  const keys = Object.keys(entries).sort().reverse();
+  document.getElementById('entryCount').textContent = keys.length ? `${keys.length} entr${keys.length===1?'y':'ies'} logged` : 'No entries yet';
+  if (!keys.length) {
+    list.innerHTML = '<div class="empty">Your saved days will show up here.</div>';
+    return;
+  }
+  list.innerHTML = keys.map(k => {
+    const e = entries[k];
+    function dotsFor(val, color) {
+      return Array.from({length:10}, (_,i) =>
+        `<span class="dot" style="background:${i < (val||0) ? color : '#2a3d48'}"></span>`
+      ).join('');
+    }
+    const dots1 = dotsFor(e.freq1, '#7fd4c9');
+    const dots2 = dotsFor(e.freq2, '#b6a6e8');
+    const dotsS = e.sensitivity !== undefined && e.sensitivity !== null ? dotsFor(e.sensitivity, '#e88fb0') : null;
+    return `<div class="entry-row" data-key="${k}">
+      <div class="entry-top">
+        <span class="date">${fmtDate(k)}</span>
+        <span class="prot-tag">${PROT_LABELS[e.protection]}</span>
+        <button class="del" title="Delete entry" data-del="${k}">×</button>
+      </div>
+      <div class="entry-freqs">
+        <div class="freq-line"><span class="bars">${dots1}</span></div>
+        <div class="freq-line"><span class="bars">${dots2}</span></div>
+        ${dotsS ? `<div class="freq-line"><span class="bars">${dotsS}</span></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const k = btn.getAttribute('data-del');
+      delete entries[k];
+      await persistEntries();
+      refreshAll();
+    });
+  });
+}
+
+function refreshAll() {
+  computeStats();
+  renderTrends();
+  drawHistory();
+  renderEntryList();
+  document.getElementById('legendFreq1').textContent = freqLabel(1);
+  document.getElementById('legendFreq2').textContent = freqLabel(2);
+}
+
+// ---------- Form wiring ----------
+const freq1Input = document.getElementById('freq1');
+const freq1Val = document.getElementById('freq1Val');
+freq1Input.addEventListener('input', () => { freq1Val.textContent = freq1Input.value; });
+
+const freq2Input = document.getElementById('freq2');
+const freq2Val = document.getElementById('freq2Val');
+freq2Input.addEventListener('input', () => { freq2Val.textContent = freq2Input.value; });
+
+const sensitivityInput = document.getElementById('sensitivity');
+const sensitivityVal = document.getElementById('sensitivityVal');
+sensitivityInput.addEventListener('input', () => { sensitivityVal.textContent = sensitivityInput.value; });
+
+const freq1NameInput = document.getElementById('freq1Name');
+const freq2NameInput = document.getElementById('freq2Name');
+freq1NameInput.addEventListener('change', async () => {
+  settings.freq1Name = freq1NameInput.value.trim();
+  await persistSettings();
+  refreshAll();
+});
+freq2NameInput.addEventListener('change', async () => {
+  settings.freq2Name = freq2NameInput.value.trim();
+  await persistSettings();
+  refreshAll();
+});
+
+document.querySelectorAll('#protection button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#protection button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedProtection = parseInt(btn.getAttribute('data-v'), 10);
+  });
+});
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const key = todayKey();
+  entries[key] = {
+    freq1: parseInt(freq1Input.value, 10),
+    freq2: parseInt(freq2Input.value, 10),
+    sensitivity: parseInt(sensitivityInput.value, 10),
+    protection: selectedProtection,
+    notes: document.getElementById('notes').value.trim(),
+    savedAt: new Date().toISOString()
+  };
+  await persistEntries();
+  refreshAll();
+
+  const btn = document.getElementById('saveBtn');
+  const original = btn.textContent;
+  btn.textContent = 'Saved ✓';
+  btn.classList.add('saved');
+  setTimeout(() => { btn.textContent = original; btn.classList.remove('saved'); }, 1400);
+});
+
+// ---------- Init ----------
+function loadTodayIntoForm() {
+  const key = todayKey();
+  const e = entries[key];
+  if (e) {
+    freq1Input.value = e.freq1 ?? 5;
+    freq1Val.textContent = freq1Input.value;
+    freq2Input.value = e.freq2 ?? 5;
+    freq2Val.textContent = freq2Input.value;
+    sensitivityInput.value = e.sensitivity ?? 5;
+    sensitivityVal.textContent = sensitivityInput.value;
+    selectedProtection = e.protection;
+    document.querySelectorAll('#protection button').forEach(b => {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-v'),10) === e.protection);
+    });
+    document.getElementById('notes').value = e.notes || '';
+  }
+  freq1NameInput.value = settings.freq1Name || '';
+  freq2NameInput.value = settings.freq2Name || '';
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((e) => console.log('SW registration failed', e));
+  });
+}
+
+async function init() {
+  document.getElementById('dateLine').textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  await loadEntries();
+  loadTodayIntoForm();
+  refreshAll();
+  resizeCanvas(waveCanvas);
+  drawWave();
+  window.addEventListener('resize', () => { resizeCanvas(waveCanvas); drawHistory(); });
+}
+init();
+</script>
+</body>
+</html>
