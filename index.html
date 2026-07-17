@@ -27,8 +27,10 @@
     --aqua-dim: #4d8f86;
     --violet: #b6a6e8;
     --violet-dim: #7d70a8;
-    --rose: #e88fb0;
-    --rose-dim: #a1607a;
+    --slate: #8fb0c9;
+    --slate-dim: #5c7d91;
+    --coral: #e2836f;
+    --coral-dim: #a15848;
     --amber: #e8935c;
     --good: #7fcf8f;
     --bad: #e8935c;
@@ -151,11 +153,6 @@
     font-size: 15px;
     color: var(--aqua);
   }
-  .field .helper {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin: -6px 0 12px;
-  }
   input[type=range] {
     -webkit-appearance: none;
     width: 100%;
@@ -166,9 +163,6 @@
   }
   input[type=range].violet-range {
     background: linear-gradient(90deg, var(--violet-dim), var(--amber));
-  }
-  input[type=range].rose-range {
-    background: linear-gradient(90deg, var(--rose-dim), var(--amber));
   }
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -181,7 +175,6 @@
     margin-top: -8px;
   }
   input[type=range].violet-range::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--violet); }
-  input[type=range].rose-range::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--rose); }
   input[type=range]::-moz-range-thumb {
     width: 20px; height: 20px;
     border-radius: 50%;
@@ -191,7 +184,16 @@
     cursor: pointer;
   }
   input[type=range].violet-range::-moz-range-thumb { box-shadow: 0 0 0 1px var(--violet); }
-  input[type=range].rose-range::-moz-range-thumb { box-shadow: 0 0 0 1px var(--rose); }
+  input[type=range].slate-range {
+    background: linear-gradient(90deg, var(--slate-dim), var(--amber));
+  }
+  input[type=range].slate-range::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--slate); }
+  input[type=range].slate-range::-moz-range-thumb { box-shadow: 0 0 0 1px var(--slate); }
+  input[type=range].coral-range {
+    background: linear-gradient(90deg, var(--coral-dim), var(--coral));
+  }
+  input[type=range].coral-range::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--coral); }
+  input[type=range].coral-range::-moz-range-thumb { box-shadow: 0 0 0 1px var(--coral); }
   .scale-labels {
     display: flex;
     justify-content: space-between;
@@ -261,7 +263,7 @@
   /* Stats row */
   .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-bottom: 20px;
   }
@@ -383,12 +385,13 @@
 
   <div class="card">
     <h2>This morning</h2>
-    <p class="sub">Rate each tone as you hear it right now, and how well you shielded your ears yesterday.</p>
+    <p class="sub">Rate each tone as you hear it right now, how sensitive everyday sounds feel, and how well you shielded your ears yesterday.</p>
 
     <canvas id="wave"></canvas>
     <div class="wave-legend">
       <span><span class="chip" style="background:var(--aqua)"></span><span id="legendFreq1">Frequency 1</span></span>
       <span><span class="chip" style="background:var(--violet)"></span><span id="legendFreq2">Frequency 2</span></span>
+      <span><span class="chip" style="background:var(--slate)"></span><span id="legendFreq3">Frequency 3</span></span>
     </div>
 
     <div class="freq-block">
@@ -401,7 +404,7 @@
     </div>
 
     <div class="freq-block">
-      <input type="text" class="freq-name-input" id="freq2Name" placeholder="e.g. Low hum">
+      <input type="text" class="freq-name-input" id="freq2Name" placeholder="e.g. Static sound">
       <div class="field">
         <label>Loudness <span class="val" id="freq2Val">5</span></label>
         <input type="range" id="freq2" class="violet-range" min="0" max="10" step="1" value="5">
@@ -410,12 +413,19 @@
     </div>
 
     <div class="freq-block">
-      <div class="field" style="margin-bottom:0">
-        <label>Sound sensitivity today <span class="val" id="sensitivityVal">5</span></label>
-        <p class="helper">Reaction to everyday sounds — loud speech, chopping veg, clattering dishes.</p>
-        <input type="range" id="sensitivity" class="rose-range" min="0" max="10" step="1" value="5">
-        <div class="scale-labels"><span>Comfortable</span><span>Overwhelming</span></div>
+      <input type="text" class="freq-name-input" id="freq3Name" placeholder="e.g. Normal background hum">
+      <div class="field">
+        <label>Loudness <span class="val" id="freq3Val">5</span></label>
+        <input type="range" id="freq3" class="slate-range" min="0" max="10" step="1" value="5">
+        <div class="scale-labels"><span>Silent</span><span>Unbearable</span></div>
       </div>
+    </div>
+
+    <div class="field">
+      <label>Sound sensitivity today <span class="val" id="sensitivityVal">5</span></label>
+      <p style="color:var(--text-muted);font-size:12.5px;margin:-4px 0 12px;">Everyday noise — chopping veg, dishes, loud speech</p>
+      <input type="range" id="sensitivity" class="coral-range" min="0" max="10" step="1" value="5">
+      <div class="scale-labels"><span>Not bothered</span><span>Overwhelming</span></div>
     </div>
 
     <div class="field">
@@ -439,7 +449,6 @@
   <div class="stats" id="stats">
     <div class="stat"><span class="num" id="statStreak">–</span><span class="label">Day streak</span></div>
     <div class="stat"><span class="num" id="statAvgProt">–</span><span class="label">Avg protection (7d)</span></div>
-    <div class="stat"><span class="num" id="statAvgSens">–</span><span class="label">Avg sensitivity (7d)</span></div>
   </div>
 
   <div class="card">
@@ -450,7 +459,7 @@
 
   <div class="card">
     <h2>Trend</h2>
-    <p class="sub">Frequency 1 (aqua), Frequency 2 (violet), sound sensitivity (rose), and ear protection (amber) over your recent entries.</p>
+    <p class="sub">Frequency 1 (aqua), Frequency 2 (violet), Frequency 3 (slate), sound sensitivity (coral), and ear protection (amber) over your recent entries.</p>
     <canvas id="history"></canvas>
   </div>
 
@@ -465,8 +474,8 @@
 
 <script>
 const PROT_LABELS = ['None', 'Some', 'Mostly', 'Always'];
-let entries = {}; // date -> {freq1, freq2, sensitivity, protection, notes, savedAt}
-let settings = { freq1Name: '', freq2Name: '' };
+let entries = {}; // date -> {freq1, freq2, freq3, sensitivity, protection, notes, savedAt}
+let settings = { freq1Name: '', freq2Name: '', freq3Name: '' };
 let selectedProtection = 3;
 
 function todayKey() {
@@ -500,9 +509,9 @@ async function loadEntries() {
   }
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    settings = raw ? JSON.parse(raw) : { freq1Name: '', freq2Name: '' };
+    settings = raw ? JSON.parse(raw) : { freq1Name: '', freq2Name: '', freq3Name: '' };
   } catch (e) {
-    settings = { freq1Name: '', freq2Name: '' };
+    settings = { freq1Name: '', freq2Name: '', freq3Name: '' };
   }
 }
 async function persistEntries() {
@@ -541,6 +550,7 @@ function drawWave() {
   waveCtx.clearRect(0, 0, w, h);
   const v1 = parseInt(document.getElementById('freq1').value, 10);
   const v2 = parseInt(document.getElementById('freq2').value, 10);
+  const v3 = parseInt(document.getElementById('freq3').value, 10);
   waveTime += 0.045;
 
   function layer(value, baseFreq, colorRGB, ampBoost) {
@@ -555,11 +565,12 @@ function drawWave() {
     waveCtx.stroke();
   }
 
-  // freq2 = lower pitch look (slower oscillation), freq1 = higher pitch look (faster)
+  // freq2 = lower pitch look (slower oscillation), freq1 = higher pitch look (faster), freq3 = steady background hum (mid, gentle)
   layer(v2, 0.008, 'rgba(182,166,232,0.85)', 0.8);
+  layer(v3, 0.014, 'rgba(143,176,201,0.7)', 0.65);
   layer(v1, 0.022, 'rgba(127,212,201,0.9)', 1);
 
-  if (v1 === 0 && v2 === 0) {
+  if (v1 === 0 && v2 === 0 && v3 === 0) {
     waveCtx.fillStyle = 'rgba(138,154,163,0.7)';
     waveCtx.font = (12*devicePixelRatio) + 'px Inter, sans-serif';
     waveCtx.textAlign = 'center';
@@ -618,7 +629,8 @@ function drawHistory() {
 
   plot(e => e.freq1, '#7fd4c9', 10);
   plot(e => e.freq2, '#b6a6e8', 10);
-  plot(e => e.sensitivity, '#e88fb0', 10);
+  plot(e => e.freq3, '#8fb0c9', 10);
+  plot(e => e.sensitivity, '#e2836f', 10);
   plot(e => e.protection, '#e8935c', 3);
 }
 
@@ -636,12 +648,9 @@ function computeStats() {
   }
   const last7 = keys.slice(-7).map(k => entries[k]);
   const avgProt = last7.length ? (last7.reduce((s,e)=>s+e.protection,0)/last7.length).toFixed(1) : '–';
-  const sensVals = last7.map(e => e.sensitivity).filter(v => v !== undefined && v !== null);
-  const avgSens = sensVals.length ? (sensVals.reduce((a,b)=>a+b,0)/sensVals.length).toFixed(1) : '–';
 
   document.getElementById('statStreak').textContent = streak;
   document.getElementById('statAvgProt').textContent = avgProt;
-  document.getElementById('statAvgSens').textContent = avgSens;
 }
 
 function avgOf(list, field) {
@@ -653,7 +662,6 @@ function avgOf(list, field) {
 function renderTrends() {
   const keys = Object.keys(entries).sort();
   const container = document.getElementById('trendList');
-  container.innerHTML = '';
 
   function trendFor(field) {
     if (keys.length < 4) return { status: 'unknown', recentAvg: null };
@@ -672,25 +680,32 @@ function renderTrends() {
 
   const icons = { improving: '↓ Improving', worsening: '↑ Worsening', stable: '→ Stable', unknown: 'Log a few more days' };
 
-  const rows = [
-    { key: 'freq1', name: freqLabel(1) },
-    { key: 'freq2', name: freqLabel(2) },
-    { key: 'sensitivity', name: 'Sound sensitivity' }
-  ];
-
-  rows.forEach(r => {
-    const t = trendFor(r.key);
+  [1, 2, 3].forEach(n => {
+    const t = trendFor('freq' + n);
     const row = document.createElement('div');
     row.className = 'trend-row';
     row.innerHTML = `
       <div>
-        <div class="trend-name">${r.name}</div>
+        <div class="trend-name">${freqLabel(n)}</div>
         <div class="trend-avg">${t.recentAvg !== null ? 'avg ' + t.recentAvg.toFixed(1) + '/10 recently' : 'not enough data yet'}</div>
       </div>
       <span class="trend-badge ${t.status}">${icons[t.status]}</span>
     `;
+    if (n === 1) container.innerHTML = '';
     container.appendChild(row);
   });
+
+  const st = trendFor('sensitivity');
+  const sRow = document.createElement('div');
+  sRow.className = 'trend-row';
+  sRow.innerHTML = `
+    <div>
+      <div class="trend-name">Sound sensitivity</div>
+      <div class="trend-avg">${st.recentAvg !== null ? 'avg ' + st.recentAvg.toFixed(1) + '/10 recently' : 'not enough data yet'}</div>
+    </div>
+    <span class="trend-badge ${st.status}">${icons[st.status]}</span>
+  `;
+  container.appendChild(sRow);
 }
 
 // ---------- Entry list ----------
@@ -704,14 +719,18 @@ function renderEntryList() {
   }
   list.innerHTML = keys.map(k => {
     const e = entries[k];
-    function dotsFor(val, color) {
-      return Array.from({length:10}, (_,i) =>
-        `<span class="dot" style="background:${i < (val||0) ? color : '#2a3d48'}"></span>`
-      ).join('');
-    }
-    const dots1 = dotsFor(e.freq1, '#7fd4c9');
-    const dots2 = dotsFor(e.freq2, '#b6a6e8');
-    const dotsS = e.sensitivity !== undefined && e.sensitivity !== null ? dotsFor(e.sensitivity, '#e88fb0') : null;
+    const dots1 = Array.from({length:10}, (_,i) =>
+      `<span class="dot" style="background:${i < (e.freq1||0) ? '#7fd4c9' : '#2a3d48'}"></span>`
+    ).join('');
+    const dots2 = Array.from({length:10}, (_,i) =>
+      `<span class="dot" style="background:${i < (e.freq2||0) ? '#b6a6e8' : '#2a3d48'}"></span>`
+    ).join('');
+    const dots3 = Array.from({length:10}, (_,i) =>
+      `<span class="dot" style="background:${i < (e.freq3||0) ? '#8fb0c9' : '#2a3d48'}"></span>`
+    ).join('');
+    const dotsSens = Array.from({length:10}, (_,i) =>
+      `<span class="dot" style="background:${i < (e.sensitivity||0) ? '#e2836f' : '#2a3d48'}"></span>`
+    ).join('');
     return `<div class="entry-row" data-key="${k}">
       <div class="entry-top">
         <span class="date">${fmtDate(k)}</span>
@@ -721,7 +740,8 @@ function renderEntryList() {
       <div class="entry-freqs">
         <div class="freq-line"><span class="bars">${dots1}</span></div>
         <div class="freq-line"><span class="bars">${dots2}</span></div>
-        ${dotsS ? `<div class="freq-line"><span class="bars">${dotsS}</span></div>` : ''}
+        <div class="freq-line"><span class="bars">${dots3}</span></div>
+        <div class="freq-line"><span class="bars">${dotsSens}</span></div>
       </div>
     </div>`;
   }).join('');
@@ -743,6 +763,7 @@ function refreshAll() {
   renderEntryList();
   document.getElementById('legendFreq1').textContent = freqLabel(1);
   document.getElementById('legendFreq2').textContent = freqLabel(2);
+  document.getElementById('legendFreq3').textContent = freqLabel(3);
 }
 
 // ---------- Form wiring ----------
@@ -754,12 +775,17 @@ const freq2Input = document.getElementById('freq2');
 const freq2Val = document.getElementById('freq2Val');
 freq2Input.addEventListener('input', () => { freq2Val.textContent = freq2Input.value; });
 
+const freq3Input = document.getElementById('freq3');
+const freq3Val = document.getElementById('freq3Val');
+freq3Input.addEventListener('input', () => { freq3Val.textContent = freq3Input.value; });
+
 const sensitivityInput = document.getElementById('sensitivity');
 const sensitivityVal = document.getElementById('sensitivityVal');
 sensitivityInput.addEventListener('input', () => { sensitivityVal.textContent = sensitivityInput.value; });
 
 const freq1NameInput = document.getElementById('freq1Name');
 const freq2NameInput = document.getElementById('freq2Name');
+const freq3NameInput = document.getElementById('freq3Name');
 freq1NameInput.addEventListener('change', async () => {
   settings.freq1Name = freq1NameInput.value.trim();
   await persistSettings();
@@ -767,6 +793,11 @@ freq1NameInput.addEventListener('change', async () => {
 });
 freq2NameInput.addEventListener('change', async () => {
   settings.freq2Name = freq2NameInput.value.trim();
+  await persistSettings();
+  refreshAll();
+});
+freq3NameInput.addEventListener('change', async () => {
+  settings.freq3Name = freq3NameInput.value.trim();
   await persistSettings();
   refreshAll();
 });
@@ -784,6 +815,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
   entries[key] = {
     freq1: parseInt(freq1Input.value, 10),
     freq2: parseInt(freq2Input.value, 10),
+    freq3: parseInt(freq3Input.value, 10),
     sensitivity: parseInt(sensitivityInput.value, 10),
     protection: selectedProtection,
     notes: document.getElementById('notes').value.trim(),
@@ -808,6 +840,8 @@ function loadTodayIntoForm() {
     freq1Val.textContent = freq1Input.value;
     freq2Input.value = e.freq2 ?? 5;
     freq2Val.textContent = freq2Input.value;
+    freq3Input.value = e.freq3 ?? 5;
+    freq3Val.textContent = freq3Input.value;
     sensitivityInput.value = e.sensitivity ?? 5;
     sensitivityVal.textContent = sensitivityInput.value;
     selectedProtection = e.protection;
@@ -818,6 +852,7 @@ function loadTodayIntoForm() {
   }
   freq1NameInput.value = settings.freq1Name || '';
   freq2NameInput.value = settings.freq2Name || '';
+  freq3NameInput.value = settings.freq3Name || '';
 }
 
 if ('serviceWorker' in navigator) {
