@@ -414,10 +414,11 @@
 
     <div class="freq-block">
       <input type="text" class="freq-name-input" id="freq3Name" placeholder="e.g. Normal background hum">
+      <p style="color:var(--text-muted);font-size:12px;margin:-8px 0 14px;">Louder is good here — it means this normal hum is masking your other tones more than usual.</p>
       <div class="field">
         <label>Loudness <span class="val" id="freq3Val">5</span></label>
         <input type="range" id="freq3" class="slate-range" min="0" max="10" step="1" value="5">
-        <div class="scale-labels"><span>Silent</span><span>Unbearable</span></div>
+        <div class="scale-labels"><span>Quiet</span><span>Very present</span></div>
       </div>
     </div>
 
@@ -663,7 +664,7 @@ function renderTrends() {
   const keys = Object.keys(entries).sort();
   const container = document.getElementById('trendList');
 
-  function trendFor(field) {
+  function trendFor(field, invert) {
     if (keys.length < 4) return { status: 'unknown', recentAvg: null };
     const half = Math.max(3, Math.floor(keys.length / 2));
     const recentKeys = keys.slice(-Math.min(7, half));
@@ -672,16 +673,23 @@ function renderTrends() {
     const priorAvg = avgOf(priorKeys.map(k => entries[k]), field);
     if (recentAvg === null || priorAvg === null) return { status: 'unknown', recentAvg };
     const diff = recentAvg - priorAvg;
+    const effDiff = invert ? -diff : diff;
     let status = 'stable';
-    if (diff <= -0.5) status = 'improving';
-    else if (diff >= 0.5) status = 'worsening';
+    if (effDiff <= -0.5) status = 'improving';
+    else if (effDiff >= 0.5) status = 'worsening';
     return { status, recentAvg, diff };
   }
 
-  const icons = { improving: '↓ Improving', worsening: '↑ Worsening', stable: '→ Stable', unknown: 'Log a few more days' };
+  function badgeText(status, invert) {
+    if (status === 'unknown') return 'Log a few more days';
+    if (status === 'stable') return '→ Stable';
+    if (status === 'improving') return invert ? '↑ Improving' : '↓ Improving';
+    return invert ? '↓ Worsening' : '↑ Worsening';
+  }
 
   [1, 2, 3].forEach(n => {
-    const t = trendFor('freq' + n);
+    const invert = n === 3;
+    const t = trendFor('freq' + n, invert);
     const row = document.createElement('div');
     row.className = 'trend-row';
     row.innerHTML = `
@@ -689,13 +697,13 @@ function renderTrends() {
         <div class="trend-name">${freqLabel(n)}</div>
         <div class="trend-avg">${t.recentAvg !== null ? 'avg ' + t.recentAvg.toFixed(1) + '/10 recently' : 'not enough data yet'}</div>
       </div>
-      <span class="trend-badge ${t.status}">${icons[t.status]}</span>
+      <span class="trend-badge ${t.status}">${badgeText(t.status, invert)}</span>
     `;
     if (n === 1) container.innerHTML = '';
     container.appendChild(row);
   });
 
-  const st = trendFor('sensitivity');
+  const st = trendFor('sensitivity', false);
   const sRow = document.createElement('div');
   sRow.className = 'trend-row';
   sRow.innerHTML = `
@@ -703,7 +711,7 @@ function renderTrends() {
       <div class="trend-name">Sound sensitivity</div>
       <div class="trend-avg">${st.recentAvg !== null ? 'avg ' + st.recentAvg.toFixed(1) + '/10 recently' : 'not enough data yet'}</div>
     </div>
-    <span class="trend-badge ${st.status}">${icons[st.status]}</span>
+    <span class="trend-badge ${st.status}">${badgeText(st.status, false)}</span>
   `;
   container.appendChild(sRow);
 }
