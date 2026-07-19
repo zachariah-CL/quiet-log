@@ -384,6 +384,20 @@
   </header>
 
   <div class="card">
+    <h2>Environment check</h2>
+    <p class="sub">Quick mic-based estimate of how loud it is around you right now — handy context before you log today's entry. Approximate only, not a calibrated sound meter.</p>
+    <div id="dbReading" style="text-align:center;font-family:'IBM Plex Mono', monospace;font-size:36px;color:var(--aqua);margin-bottom:14px;">— dB</div>
+    <button class="save-btn" id="dbBtn">Measure room noise</button>
+    <p id="dbStatus" style="color:var(--text-muted);font-size:12px;margin:10px 0 0;text-align:center;">Uses your microphone for about 2.5 seconds, then stops listening.</p>
+    <div id="dbRecommendation" style="display:none;margin-top:16px;padding:14px;border-radius:10px;background:var(--surface-raised);border:1px solid var(--line);">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:5px;">Recommended protection</div>
+      <div id="recLevel" style="font-family:'Fraunces', serif;font-size:17px;margin-bottom:6px;"></div>
+      <div id="recAdvice" style="font-size:13px;color:var(--text-muted);line-height:1.5;"></div>
+      <div style="font-size:11px;color:#5c6b73;margin-top:10px;">General guidance only, not medical advice — if sounds hurt or your ringing spikes, see an audiologist.</div>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>This morning</h2>
     <p class="sub">Rate each tone as you hear it right now, how sensitive everyday sounds feel, and how well you shielded your ears yesterday.</p>
 
@@ -773,6 +787,137 @@ function refreshAll() {
   document.getElementById('legendFreq2').textContent = freqLabel(2);
   document.getElementById('legendFreq3').textContent = freqLabel(3);
 }
+
+// ---------- Environment noise check ----------
+function rmsToApproxDb(rms) {
+  const db = 20 * Math.log10(rms || 0.00001) + 100;
+  return Math.max(0, Math.min(130, Math.round(db)));
+}
+
+function bandForFreq(freq) {
+  if (freq < 500) return 'low';
+  if (freq < 2000) return 'mid';
+  return 'high';
+}
+
+const BAND_LABEL = { low: 'low-frequency, rumble-like', mid: 'mid-range', high: 'high-frequency, hiss/sharp-like' };
+
+function protectionRecommendation(db, band) {
+  let level, advice;
+  if (db < 50) {
+    level = 'None needed';
+    advice = 'Quiet enough to leave your ears unprotected — a good environment for tinnitus recovery.';
+  } else if (db < 65) {
+    level = 'Optional';
+    advice = 'Generally comfortable. If your ears feel sensitive today, foam plugs are a reasonable precaution.';
+  } else if (db < 75) {
+    level = 'Foam or filtered earplugs';
+    advice = 'Loud enough that healing, sensitive ears benefit from some protection, especially if you\'ll be here a while.';
+  } else if (db < 85) {
+    level = 'Earplugs recommended';
+    advice = 'This level can aggravate tinnitus and hyperacusis over time — wear earplugs and limit how long you stay exposed.';
+  } else {
+    level = 'Earplugs + earmuffs (double protection)';
+    advice = 'Loud enough to risk further damage and flare-ups. Use full protection or leave the area if you can.';
+  }
+  if (band === 'high' && db >= 50) {
+    advice += ' This sound leans high-frequency, which tends to be more provoking for tinnitus — lean toward extra protection rather than less.';
+  }
+  return { level, advice, band };
+}
+
+async function measureRoomNoise() {
+  const btn = document.getElementById('dbBtn');
+  const reading = document.getElementById('dbReading');
+  const status = document.getElementById('dbStatus');
+  const recBox = document.getElementById('dbRecommendation');
+
+  recBox.style.display = 'none';
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    status.textContent = 'Microphone access isn\'t supported in this browser.';
+    return;
+  }
+
+  btn.disabled = true;
+  status.textContent = 'Requesting microphone access…';
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    status.textContent = 'Microphone access denied — check your browser or site permissions.';
+    btn.disabled = false;
+    return;
+  }
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioCtx();
+  const source = audioCtx.createMediaStreamSource(stream);
+  const analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+  const data = new Float32Array(analyser.fftSize);
+  const freqData = new Float32Array(analyser.frequencyBinCount);
+  const binHz = audioCtx.sampleRate / analyser.fftSize;
+
+  status.textContent = 'Listening…';
+  const samples = [];
+  const bandSums = { low: 0, mid: 0, high: 0 };
+  const bandCounts = { low: 0, mid: 0, high: 0 };
+  const durationMs = 2500;
+  const startTime = performance.now();
+
+  function sampleFrame() {
+    analyser.getFloatTimeDomainData(data);
+    let sumSquares = 0;
+    for (let i = 0; i < data.length; i++) sumSquares += data[i] * data[i];
+    const rms = Math.sqrt(sumSquares / data.length);
+    samples.push(rms);
+    reading.textContent = rmsToApproxDb(rms) + ' dB';
+
+    analyser.getFloatFrequencyData(freqData);
+    for (let i = 1; i < freqData.length; i++) {
+      const val = freqData[i];
+      if (!isFinite(val)) continue;
+      const b = bandForFreq(i * binHz);
+      bandSums[b] += val;
+      bandCounts[b]++;
+    }
+
+    if (performance.now() - startTime < durationMs) {
+      requestAnimationFrame(sampleFrame);
+    } else {
+      finish();
+    }
+  }
+
+  function finish() {
+    stream.getTracks().forEach((t) => t.stop());
+    audioCtx.close();
+    const avgRms = samples.reduce((a, b) => a + b, 0) / samples.length;
+    const db = rmsToApproxDb(avgRms);
+    reading.textContent = db + ' dB';
+    status.textContent = 'Measured just now — approximate, not a calibrated meter.';
+    btn.disabled = false;
+
+    const bandAvg = {
+      low: bandCounts.low ? bandSums.low / bandCounts.low : -Infinity,
+      mid: bandCounts.mid ? bandSums.mid / bandCounts.mid : -Infinity,
+      high: bandCounts.high ? bandSums.high / bandCounts.high : -Infinity,
+    };
+    const dominantBand = Object.keys(bandAvg).reduce((a, b) => (bandAvg[a] >= bandAvg[b] ? a : b));
+
+    const rec = protectionRecommendation(db, dominantBand);
+    document.getElementById('recLevel').textContent = rec.level;
+    document.getElementById('recAdvice').textContent = `Mostly ${BAND_LABEL[dominantBand]} sound. ${rec.advice}`;
+    recBox.style.display = 'block';
+  }
+
+  sampleFrame();
+}
+
+document.getElementById('dbBtn').addEventListener('click', measureRoomNoise);
 
 // ---------- Form wiring ----------
 const freq1Input = document.getElementById('freq1');
