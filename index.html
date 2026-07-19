@@ -385,10 +385,10 @@
 
   <div class="card">
     <h2>Environment check</h2>
-    <p class="sub">Quick mic-based estimate of how loud it is around you right now — handy context before you log today's entry. Approximate only, not a calibrated sound meter.</p>
+    <p class="sub">Mic-based estimate of the loudest moment around you — handy context before you log today's entry. Approximate only, not a calibrated sound meter.</p>
     <div id="dbReading" style="text-align:center;font-family:'IBM Plex Mono', monospace;font-size:36px;color:var(--aqua);margin-bottom:14px;">— dB</div>
     <button class="save-btn" id="dbBtn">Measure room noise</button>
-    <p id="dbStatus" style="color:var(--text-muted);font-size:12px;margin:10px 0 0;text-align:center;">Uses your microphone for about 2.5 seconds, then stops listening.</p>
+    <p id="dbStatus" style="color:var(--text-muted);font-size:12px;margin:10px 0 0;text-align:center;">Listens for 10 seconds and reports the peak, then stops.</p>
     <div id="dbRecommendation" style="display:none;margin-top:16px;padding:14px;border-radius:10px;background:var(--surface-raised);border:1px solid var(--line);">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:5px;">Recommended protection</div>
       <div id="recLevel" style="font-family:'Fraunces', serif;font-size:17px;margin-bottom:6px;"></div>
@@ -804,23 +804,23 @@ const BAND_LABEL = { low: 'low-frequency, rumble-like', mid: 'mid-range', high: 
 
 function protectionRecommendation(db, band) {
   let level, advice;
-  if (db < 50) {
+  if (db < 45) {
     level = 'None needed';
     advice = 'Quiet enough to leave your ears unprotected — a good environment for tinnitus recovery.';
-  } else if (db < 65) {
+  } else if (db < 58) {
     level = 'Optional';
-    advice = 'Generally comfortable. If your ears feel sensitive today, foam plugs are a reasonable precaution.';
-  } else if (db < 75) {
+    advice = 'Generally comfortable, but since we\'re erring cautious while you heal, foam plugs are a reasonable precaution here too.';
+  } else if (db < 68) {
     level = 'Foam or filtered earplugs';
-    advice = 'Loud enough that healing, sensitive ears benefit from some protection, especially if you\'ll be here a while.';
-  } else if (db < 85) {
+    advice = 'Loud enough that healing, sensitive ears benefit from protection, especially if you\'ll be here a while.';
+  } else if (db < 78) {
     level = 'Earplugs recommended';
     advice = 'This level can aggravate tinnitus and hyperacusis over time — wear earplugs and limit how long you stay exposed.';
   } else {
     level = 'Earplugs + earmuffs (double protection)';
     advice = 'Loud enough to risk further damage and flare-ups. Use full protection or leave the area if you can.';
   }
-  if (band === 'high' && db >= 50) {
+  if (band === 'high' && db >= 40) {
     advice += ' This sound leans high-frequency, which tends to be more provoking for tinnitus — lean toward extra protection rather than less.';
   }
   return { level, advice, band };
@@ -861,11 +861,11 @@ async function measureRoomNoise() {
   const freqData = new Float32Array(analyser.frequencyBinCount);
   const binHz = audioCtx.sampleRate / analyser.fftSize;
 
-  status.textContent = 'Listening…';
-  const samples = [];
+  status.textContent = 'Listening for 10 seconds — tracking the loudest moment…';
+  let peakRms = 0;
   const bandSums = { low: 0, mid: 0, high: 0 };
   const bandCounts = { low: 0, mid: 0, high: 0 };
-  const durationMs = 2500;
+  const durationMs = 10000;
   const startTime = performance.now();
 
   function sampleFrame() {
@@ -873,8 +873,8 @@ async function measureRoomNoise() {
     let sumSquares = 0;
     for (let i = 0; i < data.length; i++) sumSquares += data[i] * data[i];
     const rms = Math.sqrt(sumSquares / data.length);
-    samples.push(rms);
-    reading.textContent = rmsToApproxDb(rms) + ' dB';
+    if (rms > peakRms) peakRms = rms;
+    reading.textContent = rmsToApproxDb(peakRms) + ' dB peak';
 
     analyser.getFloatFrequencyData(freqData);
     for (let i = 1; i < freqData.length; i++) {
@@ -895,10 +895,9 @@ async function measureRoomNoise() {
   function finish() {
     stream.getTracks().forEach((t) => t.stop());
     audioCtx.close();
-    const avgRms = samples.reduce((a, b) => a + b, 0) / samples.length;
-    const db = rmsToApproxDb(avgRms);
-    reading.textContent = db + ' dB';
-    status.textContent = 'Measured just now — approximate, not a calibrated meter.';
+    const db = rmsToApproxDb(peakRms);
+    reading.textContent = db + ' dB peak';
+    status.textContent = 'Loudest moment over the last 10s — approximate, not a calibrated meter.';
     btn.disabled = false;
 
     const bandAvg = {
